@@ -60,7 +60,7 @@ After agent specialization, **model selection was aligned with task requirements
 | Context scope | Global (shared across all agents) | Local (per-agent only) |
 | Model strategy | Same model for all tasks | Task-matched model selection |
 | Cost per execution | Baseline | **−66%** |
-| Savings per run | — | **~R$ 33.00** |
+| Savings per run | — | **~R$ 17.00** |
 
 ---
 
