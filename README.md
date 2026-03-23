@@ -86,7 +86,7 @@ After agent specialization, **model selection was aligned with task requirements
 
 ## Related
 
-- [LinkedIn article (Portuguese)]([https://www.linkedin.com/in/-emanuela-araujo/](https://www.linkedin.com/pulse/como-reduzi-em-66-o-custo-de-um-processo-realizado-por-ara%C3%BAjo-q6h9f/?trackingId=oaBtBSlvyWvWtDemqb%2F3LQ%3D%3D)) — original writeup with architecture diagrams
+- [LinkedIn article (Portuguese)](https://www.linkedin.com/pulse/como-reduzi-em-66-o-custo-de-um-processo-realizado-por-ara%C3%BAjo-q6h9f/?trackingId=oaBtBSlvyWvWtDemqb%2F3LQ%3D%3D) — original writeup with architecture diagrams
 - [My GitHub profile](https://github.com/emanuela-araujo)
 
 ---
