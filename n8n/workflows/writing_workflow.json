@@ -1,0 +1,517 @@
+{
+    "nodes": [
+      {
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "claude-sonnet-4-20250514",
+            "cachedResultName": "Claude 4 Sonnet"
+          },
+          "options": {
+            "maxTokensToSample": 14000
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+        "typeVersion": 1.3,
+        "position": [
+          -272,
+          -992
+        ],
+        "id": "6e193e35-7385-4057-983e-77e232712f55",
+        "name": "Anthropic Chat Model",
+        "retryOnFail": true,
+        "waitBetweenTries": 1000,
+        "credentials": {
+          "anthropicApi": {
+            "id": "YOUR_ANTHROPIC_CREDENTIAL_ID",
+            "name": "YOUR_ANTHROPIC_CREDENTIAL_NAME"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "description": "=Esta ferramenta serve para planejar ações antes de executá-las."
+        },
+        "type": "@n8n/n8n-nodes-langchain.toolThink",
+        "typeVersion": 1.1,
+        "position": [
+          16,
+          -960
+        ],
+        "id": "6890f4b5-b476-4b93-ba1f-0b1ec4405e5e",
+        "name": "Think"
+      },
+      {
+        "parameters": {
+          "operation": "get",
+          "documentURL": "={{ $fromAI('Doc_ID_or_URL', ``, 'string') }}"
+        },
+        "type": "n8n-nodes-base.googleDocsTool",
+        "typeVersion": 2,
+        "position": [
+          -128,
+          -992
+        ],
+        "id": "32a9b843-47d5-4cd3-a610-177f8e03d093",
+        "name": "ler_briefing",
+        "credentials": {
+          "googleDocsOAuth2Api": {
+            "id": "YOUR_GOOGLE_DOCS_CREDENTIAL_ID",
+            "name": "YOUR_GOOGLE_DOCS_CREDENTIAL_NAME"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "folderId": "={{ $('When Executed by Another Workflow').first().json.id_folder }}",
+          "title": "=[{{ $('Edit Fields').first().json.Marca }}] Texto para revisar -\"{{ $('Edit Fields').first().json.Tópico }}\"- {{ new Date($now).getFullYear() + '-' + (new Date($now).getMonth() + 1).toString().padStart(2, '0') }}"
+        },
+        "type": "n8n-nodes-base.googleDocs",
+        "typeVersion": 2,
+        "position": [
+          176,
+          -1136
+        ],
+        "id": "9cbd47ee-ef0b-4da3-a0ab-cc9710d5abac",
+        "name": "criar_documento",
+        "alwaysOutputData": true,
+        "credentials": {
+          "googleDocsOAuth2Api": {
+            "id": "YOUR_GOOGLE_DOCS_CREDENTIAL_ID",
+            "name": "YOUR_GOOGLE_DOCS_CREDENTIAL_NAME"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "operation": "update",
+          "documentURL": "={{ $json.id }}",
+          "actionsUi": {
+            "actionFields": [
+              {
+                "action": "insert",
+                "text": "={{ $('Redator').first().json.output }}"
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.googleDocs",
+        "typeVersion": 2,
+        "position": [
+          384,
+          -1136
+        ],
+        "id": "3bec69b6-b91f-422a-b7c0-31120fc8de3a",
+        "name": "atualizar_v1",
+        "alwaysOutputData": true,
+        "credentials": {
+          "googleDocsOAuth2Api": {
+            "id": "YOUR_GOOGLE_DOCS_CREDENTIAL_ID",
+            "name": "YOUR_GOOGLE_DOCS_CREDENTIAL_NAME"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "=Você é o Subagente Redator do Sistema Multiagente de Conteúdo.\n\nVocê é um redator especialista em SEO, IA e produção de conteúdo satélite.\n\nMarca: {{ $json.Marca }}\nLink do Briefing: {{ $json.idbriefing }}\n\nUse somente as informações presentes no briefing. Não pesquise nada externo. Não invente dados.\n",
+          "options": {
+            "systemMessage": "Você é um redator especializado em SEO, IA e estratégia de conteúdo satélite."
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 3,
+        "position": [
+          -192,
+          -1136
+        ],
+        "id": "53681d8d-1cfe-4ac3-aa64-5f8b3abe40fa",
+        "name": "Redator",
+        "alwaysOutputData": true,
+        "retryOnFail": true,
+        "maxTries": 2
+      },
+      {
+        "parameters": {
+          "operation": "update",
+          "documentURL": "={{ $('atualizar_v1').first().json.documentId }}",
+          "actionsUi": {
+            "actionFields": [
+              {
+                "action": "replaceAll",
+                "text": "={{ $('Redator').item.json.output }}",
+                "replaceText": "={{ $json.output }}"
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.googleDocs",
+        "typeVersion": 2,
+        "position": [
+          960,
+          -1136
+        ],
+        "id": "0cc61478-e6f3-4be3-8cdc-4f22b383e81a",
+        "name": "atualizar_v2",
+        "alwaysOutputData": true,
+        "credentials": {
+          "googleDocsOAuth2Api": {
+            "id": "YOUR_GOOGLE_DOCS_CREDENTIAL_ID",
+            "name": "YOUR_GOOGLE_DOCS_CREDENTIAL_NAME"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "=Use [tool]ler_texto para ver o conteúdo previamente produzido e que você deve revisar.\n\nTom de voz da marca: {{ $('Edit Fields').first().json['Tom de Voz'] }}\n",
+          "options": {
+            "systemMessage": "=Você é o Subagente de Revisão de Tom de Voz do Sistema Multiagente de Conteúdo.\n\nSua função é refinar a forma do texto produzido pelo Agente de Redação, aprimorando fluidez, coerência, naturalidade e tom, sem modificar o conteúdo."
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 3,
+        "position": [
+          624,
+          -1136
+        ],
+        "id": "5f66a0e6-c144-4353-bf77-bc3c1d0c87e3",
+        "name": "Revisor de Tom de Voz",
+        "alwaysOutputData": true
+      },
+      {
+        "parameters": {
+          "operation": "get",
+          "documentURL": "={{ $('atualizar_v1').first().json.documentId }}"
+        },
+        "type": "n8n-nodes-base.googleDocsTool",
+        "typeVersion": 2,
+        "position": [
+          768,
+          -960
+        ],
+        "id": "426cab25-32f6-4738-b980-c5249b075a65",
+        "name": "[tool] ler_texto",
+        "credentials": {
+          "googleDocsOAuth2Api": {
+            "id": "YOUR_GOOGLE_DOCS_CREDENTIAL_ID",
+            "name": "YOUR_GOOGLE_DOCS_CREDENTIAL_NAME"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "claude-sonnet-4-20250514",
+            "cachedResultName": "Claude 4 Sonnet"
+          },
+          "options": {
+            "maxTokensToSample": 14000
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+        "typeVersion": 1.3,
+        "position": [
+          624,
+          -960
+        ],
+        "id": "49c2a4b2-4de6-48bb-88b4-03857db0e2ee",
+        "name": "Anthropic Chat Model1",
+        "retryOnFail": true,
+        "maxTries": 3,
+        "credentials": {
+          "anthropicApi": {
+            "id": "YOUR_ANTHROPIC_CREDENTIAL_ID",
+            "name": "YOUR_ANTHROPIC_CREDENTIAL_NAME"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "operation": "update",
+          "documentURL": "={{ $json.id }}",
+          "actionsUi": {
+            "actionFields": [
+              {
+                "action": "insert",
+                "text": "={{ $('Revisor de Fluidez').first().json.output }}"
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.googleDocs",
+        "typeVersion": 2,
+        "position": [
+          1728,
+          -1136
+        ],
+        "id": "7efe2b7c-013c-4f9d-be94-43113bfe56b5",
+        "name": "atualizar_v3",
+        "alwaysOutputData": true,
+        "credentials": {
+          "googleDocsOAuth2Api": {
+            "id": "YOUR_GOOGLE_DOCS_CREDENTIAL_ID",
+            "name": "YOUR_GOOGLE_DOCS_CREDENTIAL_NAME"
+          }
+        },
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "=Você é o Subagente de Fluidez do Sistema Multiagente de Conteúdo.\n\nSua função é melhorar a fluidez, naturalidade e progressão lógica do texto, sem alterar absolutamente nada do conteúdo original.\n",
+          "options": {
+            "systemMessage": "Você é um especialista revisor de textos em português, com foco em melhorar a fluidez e naturalidade de conteúdos.",
+            "enableStreaming": false
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 3,
+        "position": [
+          1184,
+          -1136
+        ],
+        "id": "dac245b3-42b3-4008-829c-7ef00a3307e6",
+        "name": "Revisor de Fluidez",
+        "alwaysOutputData": true
+      },
+      {
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "claude-sonnet-4-20250514",
+            "cachedResultName": "Claude 4 Sonnet"
+          },
+          "options": {
+            "maxTokensToSample": 14000
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+        "typeVersion": 1.3,
+        "position": [
+          1120,
+          -944
+        ],
+        "id": "f70d5e79-430f-41fe-974f-e909b11c9bbb",
+        "name": "Anthropic Chat Model2",
+        "retryOnFail": true,
+        "credentials": {
+          "anthropicApi": {
+            "id": "YOUR_ANTHROPIC_CREDENTIAL_ID",
+            "name": "YOUR_ANTHROPIC_CREDENTIAL_NAME"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "operation": "get",
+          "documentURL": "={{ $('atualizar_v1').first().json.documentId }}"
+        },
+        "type": "n8n-nodes-base.googleDocsTool",
+        "typeVersion": 2,
+        "position": [
+          1328,
+          -928
+        ],
+        "id": "b6ee2e07-6f99-4d47-a777-b2ba6ceb7937",
+        "name": "[tool] ler_texto1",
+        "credentials": {
+          "googleDocsOAuth2Api": {
+            "id": "YOUR_GOOGLE_DOCS_CREDENTIAL_ID",
+            "name": "YOUR_GOOGLE_DOCS_CREDENTIAL_NAME"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "folderId": "={{ $('When Executed by Another Workflow').first().json.id_folder }}",
+          "title": "=[{{ $('Edit Fields').first().json.Marca }}] Texto final -\"{{ $('Edit Fields').first().json.Tópico }}\"- {{ new Date($now).getFullYear() + '-' + (new Date($now).getMonth() + 1).toString().padStart(2, '0') }}"
+        },
+        "type": "n8n-nodes-base.googleDocs",
+        "typeVersion": 2,
+        "position": [
+          1520,
+          -1136
+        ],
+        "id": "701efced-7465-4d26-b40a-75d824a6df73",
+        "name": "criar_documento1",
+        "alwaysOutputData": true,
+        "credentials": {
+          "googleDocsOAuth2Api": {
+            "id": "YOUR_GOOGLE_DOCS_CREDENTIAL_ID",
+            "name": "YOUR_GOOGLE_DOCS_CREDENTIAL_NAME"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Anthropic Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Redator",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Think": {
+        "ai_tool": [
+          [
+            {
+              "node": "Redator",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "ler_briefing": {
+        "ai_tool": [
+          [
+            {
+              "node": "Redator",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "criar_documento": {
+        "main": [
+          [
+            {
+              "node": "atualizar_v1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "atualizar_v1": {
+        "main": [
+          [
+            {
+              "node": "Revisor de Tom de Voz",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Redator": {
+        "main": [
+          [
+            {
+              "node": "criar_documento",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "atualizar_v2": {
+        "main": [
+          [
+            {
+              "node": "Revisor de Fluidez",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Revisor de Tom de Voz": {
+        "main": [
+          [
+            {
+              "node": "atualizar_v2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "[tool] ler_texto": {
+        "ai_tool": [
+          [
+            {
+              "node": "Revisor de Tom de Voz",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Anthropic Chat Model1": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Revisor de Tom de Voz",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "atualizar_v3": {
+        "main": [
+          []
+        ]
+      },
+      "Revisor de Fluidez": {
+        "main": [
+          [
+            {
+              "node": "criar_documento1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Anthropic Chat Model2": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Revisor de Fluidez",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "[tool] ler_texto1": {
+        "ai_tool": [
+          [
+            {
+              "node": "Revisor de Fluidez",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "criar_documento1": {
+        "main": [
+          [
+            {
+              "node": "atualizar_v3",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "pinData": {},
+    "meta": {
+      "templateCredsSetupCompleted": true,
+      "instanceId": "YOUR_N8N_INSTANCE_ID"
+    }
+  }

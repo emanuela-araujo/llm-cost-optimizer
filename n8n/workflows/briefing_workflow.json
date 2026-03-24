@@ -1,0 +1,859 @@
+{
+    "nodes": [
+      {
+        "parameters": {},
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          -4800,
+          2928
+        ],
+        "id": "4a4c2493-6f4f-42a8-bb77-4f004dd35b0c",
+        "name": "When clicking 'Execute workflow'"
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://google.serper.dev/search",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth",
+          "sendBody": true,
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "q",
+                "value": "={{ $('Code in JavaScript').item.json.query }}"
+              },
+              {
+                "name": "gl",
+                "value": "br"
+              },
+              {
+                "name": "hl",
+                "value": "pt-br"
+              },
+              {
+                "name": "location",
+                "value": "Brazil"
+              },
+              {
+                "name": "num",
+                "value": "10"
+              },
+              {
+                "name": "type",
+                "value": "search"
+              },
+              {
+                "name": "page",
+                "value": "1"
+              },
+              {
+                "name": "safe",
+                "value": "active"
+              },
+              {
+                "name": "autocorrect",
+                "value": "true"
+              },
+              {
+                "name": "tbs",
+                "value": "qdr:y"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.3,
+        "position": [
+          5552,
+          2896
+        ],
+        "id": "3448d2bb-eaf6-4136-a510-63196a14b4d9",
+        "name": "SERP Brasil",
+        "retryOnFail": true,
+        "alwaysOutputData": true,
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "YOUR_SERPER_CREDENTIAL_ID",
+            "name": "YOUR_SERPER_CREDENTIAL_NAME"
+          }
+        },
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "=Você é um **especialista em pesquisa avançada**.\n\nTópico central: {{ $('Edit Fields4').item.json['Palavra-chave principal'] }}\nObjetivo: {{ $('Edit Fields4').item.json['Palavra-chave secundária'] }}\n\nGere exatamente **5 queries** para encontrar dados estatísticos.\n\nRetorne apenas:\n{\n\"queries\":[\"query abc\", \"query xyz\"]\n}\n",
+          "hasOutputParser": true,
+          "options": {}
+        },
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 3,
+        "position": [
+          4560,
+          2784
+        ],
+        "id": "a81b1ae7-6a57-4958-83f1-1f6d56016a57",
+        "name": "AI Agent1",
+        "retryOnFail": true,
+        "alwaysOutputData": true,
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "jsonSchemaExample": "{\n\"queries\":[\"query1\", \"query2\"]\n}"
+        },
+        "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+        "typeVersion": 1.3,
+        "position": [
+          4704,
+          2928
+        ],
+        "id": "6c4043b7-14a7-4162-9940-ea5b89d3bcf7",
+        "name": "Structured Output Parser5"
+      },
+      {
+        "parameters": {
+          "batchSize": "=1",
+          "options": {
+            "reset": false
+          }
+        },
+        "type": "n8n-nodes-base.splitInBatches",
+        "typeVersion": 3,
+        "position": [
+          5120,
+          2784
+        ],
+        "id": "e1705785-8e44-47c8-b0f0-2c0ac61e2041",
+        "name": "Loop Over Items",
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "jsCode": "const inputItem = $input.first().json.output;\nif (inputItem && inputItem.queries && Array.isArray(inputItem.queries)) {\n  return inputItem.queries.map(queryText => ({ query: queryText }));\n} else {\n  return [];\n}"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          4912,
+          2784
+        ],
+        "id": "13acd130-37fc-4df1-bbdb-fa7ed936e60e",
+        "name": "Code in JavaScript",
+        "alwaysOutputData": true
+      },
+      {
+        "parameters": {
+          "jsCode": "const serpHits = $input.first().json.organic;\nconst inputItem = $input.first().json;\nif (!serpHits || serpHits.length === 0) { return []; }\nreturn serpHits.map(hit => ({\n  title: hit.title, link: hit.link, snippet: hit.snippet,\n  position: hit.position, date: hit.date || null, engine: inputItem.engine\n}));"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          5712,
+          2896
+        ],
+        "id": "e01c39b0-4d10-410c-a237-84cabd7724a7",
+        "name": "Code in JavaScript1",
+        "alwaysOutputData": true,
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "claude-sonnet-4-5-20250929",
+            "cachedResultName": "Claude Sonnet 4.5"
+          },
+          "options": {
+            "maxTokensToSample": 10000
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+        "typeVersion": 1.3,
+        "position": [
+          6064,
+          2656
+        ],
+        "id": "60b72eec-d0e6-4d9f-aa4c-774418d1e204",
+        "name": "Anthropic Chat Model7",
+        "credentials": {
+          "anthropicApi": {
+            "id": "YOUR_ANTHROPIC_CREDENTIAL_ID",
+            "name": "YOUR_ANTHROPIC_CREDENTIAL_NAME"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "description": "Use essa tool para interpretar os dados coletados e resumir as informações."
+        },
+        "type": "@n8n/n8n-nodes-langchain.toolThink",
+        "typeVersion": 1.1,
+        "position": [
+          6208,
+          2640
+        ],
+        "id": "2a296a56-f9ad-4f7c-ac4a-444e723e59e9",
+        "name": "Think4"
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "Leia os dados com a tool get rows para extrair as informações",
+          "hasOutputParser": true,
+          "options": {
+            "systemMessage": "=Você é um extrator de informação altamente preciso. Extraia apenas informações úteis, estruturadas e concisas."
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 3,
+        "position": [
+          5744,
+          2496
+        ],
+        "id": "d732eb20-144c-40cc-8d1d-b6fa874caad5",
+        "name": "Extrator de dados",
+        "executeOnce": true,
+        "alwaysOutputData": true,
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "claude-sonnet-4-5-20250929",
+            "cachedResultName": "Claude Sonnet 4.5"
+          },
+          "options": {
+            "maxTokensToSample": 10000
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+        "typeVersion": 1.3,
+        "position": [
+          5744,
+          2656
+        ],
+        "id": "c796faac-57e1-4bfd-907c-af8bfac03d5e",
+        "name": "Anthropic Chat Model8",
+        "credentials": {
+          "anthropicApi": {
+            "id": "YOUR_ANTHROPIC_CREDENTIAL_ID",
+            "name": "YOUR_ANTHROPIC_CREDENTIAL_NAME"
+          }
+        }
+      },
+      {
+        "parameters": {},
+        "type": "n8n-nodes-base.limit",
+        "typeVersion": 1,
+        "position": [
+          5568,
+          2496
+        ],
+        "id": "bdfeb911-f150-4525-9ee0-77c14589c462",
+        "name": "Limit",
+        "alwaysOutputData": true
+      },
+      {
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "claude-sonnet-4-5-20250929",
+            "cachedResultName": "Claude Sonnet 4.5"
+          },
+          "options": {}
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+        "typeVersion": 1.3,
+        "position": [
+          6832,
+          2656
+        ],
+        "id": "4976169c-66a3-48cf-a6dc-53ae8f0d7cbd",
+        "name": "Anthropic Chat Model9",
+        "credentials": {
+          "anthropicApi": {
+            "id": "YOUR_ANTHROPIC_CREDENTIAL_ID",
+            "name": "YOUR_ANTHROPIC_CREDENTIAL_NAME"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "description": "Use essa tool para interpretar os dados coletados e resumir as informações."
+        },
+        "type": "@n8n/n8n-nodes-langchain.toolThink",
+        "typeVersion": 1.1,
+        "position": [
+          6976,
+          2720
+        ],
+        "id": "52f56094-2ac0-434b-88f0-a6a36771b3f1",
+        "name": "Think9"
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "91f47be8-3bbd-4056-9ca3-d23bd14bd17a",
+                "name": "Marca",
+                "value": "={{ $('Webhook').item.json.body.Cliente }}",
+                "type": "string"
+              },
+              {
+                "id": "291c08e4-4c29-4cd8-a9e2-137f864ccd9e",
+                "name": "URL",
+                "value": "={{ $('Webhook').item.json.body['Domínio'] }}",
+                "type": "string"
+              },
+              {
+                "id": "f7587694-7cef-46ff-96c9-8f3830b8851a",
+                "name": "Topico",
+                "value": "={{ $('Webhook').item.json.body['Tópico'] }}",
+                "type": "string"
+              },
+              {
+                "id": "588004d3-4ebc-45ad-975d-a0307ab30ead",
+                "name": "Palavra-chave principal",
+                "value": "={{ $('Webhook').item.json.body['Palavra-chave principal'] }}",
+                "type": "string"
+              },
+              {
+                "id": "e1cd7779-7fa2-45a0-a9e4-416acd461010",
+                "name": "Palavra-chave secundária",
+                "value": "={{ $('Webhook').item.json.body['Objetivo'] }}",
+                "type": "string"
+              },
+              {
+                "id": "0e14f319-eeeb-4d48-a4f5-7b0600f737e7",
+                "name": "CTAs",
+                "value": true,
+                "type": "boolean"
+              },
+              {
+                "id": "650de657-a6c8-4947-af94-bfee0b1237a5",
+                "name": "Links Internos",
+                "value": true,
+                "type": "boolean"
+              },
+              {
+                "id": "f7c7d4a1-1a3c-4bdd-a3d3-1d3ba5d45d99",
+                "name": "Trazer referências",
+                "value": true,
+                "type": "boolean"
+              },
+              {
+                "id": "9d2a551d-ccf7-46d6-a1aa-6207d81a17f4",
+                "name": "Tom de Voz",
+                "value": "={{ $('Webhook').item.json.body['Tom de voz'] }}",
+                "type": "string"
+              },
+              {
+                "id": "577e3ea6-19a5-4023-8147-6a2d668e8f96",
+                "name": "Squad",
+                "value": "={{ $('Webhook').item.json.body['Squad'] }}",
+                "type": "string"
+              },
+              {
+                "id": "864da85c-4cd0-498e-a46f-0bb619f0506a",
+                "name": "Objetivo",
+                "value": "={{ $('Webhook').item.json.body['Objetivo'] }}",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          -3584,
+          2656
+        ],
+        "id": "42411e47-32eb-4f11-b54c-44a31ee66ebe",
+        "name": "Edit Fields4"
+      },
+      {
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "claude-sonnet-4-5-20250929",
+            "cachedResultName": "Claude Sonnet 4.5"
+          },
+          "options": {
+            "maxTokensToSample": 15000
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+        "typeVersion": 1.3,
+        "position": [
+          8224,
+          2704
+        ],
+        "id": "4b84b441-af92-45ed-96bd-14dca5203330",
+        "name": "Anthropic Chat Model21",
+        "credentials": {
+          "anthropicApi": {
+            "id": "YOUR_ANTHROPIC_CREDENTIAL_ID",
+            "name": "YOUR_ANTHROPIC_CREDENTIAL_NAME"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "agente-conteudo",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          -4784,
+          2720
+        ],
+        "id": "02a37c72-9048-421a-abad-29f9e500ff7a",
+        "name": "Webhook",
+        "webhookId": "YOUR_WEBHOOK_ID"
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "254687fd-93f3-4952-821d-417feb76ee3c",
+                "name": "idfolder",
+                "value": "YOUR_SQUAD_ATHENA_FOLDER_ID",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          -3072,
+          2128
+        ],
+        "id": "f04be685-1b13-4380-bfdc-8fdff919c86a",
+        "name": "Edit Fields"
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "2a57a689-6d4f-4839-9bc1-77bb93fef28f",
+                "name": "idfolder",
+                "value": "YOUR_SQUAD_EVA_FOLDER_ID",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          -3072,
+          2240
+        ],
+        "id": "398ca727-c5e7-451e-9c73-0fc08ff9262d",
+        "name": "Edit Fields1"
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "2742a37a-8a63-44c7-8491-a1537baee54b",
+                "name": "idfolder",
+                "value": "YOUR_SQUAD_GAIA_FOLDER_ID",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          -3072,
+          2352
+        ],
+        "id": "c2851395-4b22-4b3b-bc7f-b8d496c52ff2",
+        "name": "Edit Fields2"
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "0aa7431b-2cec-4708-b9fc-dfa8b4845d18",
+                "name": "idfolder",
+                "value": "YOUR_SQUAD_SHIFT_FOLDER_ID",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          -3072,
+          2464
+        ],
+        "id": "0f0823ad-97a7-4703-b752-3b1ff2e7728b",
+        "name": "Edit Fields3"
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "8fa701b6-0752-4653-b09c-fa3145dde35d",
+                "name": "idfolder",
+                "value": "YOUR_SQUAD_VENUS_FOLDER_ID",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          -3072,
+          2576
+        ],
+        "id": "69f02fc8-161d-414f-86f5-851777a2dbb4",
+        "name": "Edit Fields5"
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "a6d88a98-9068-4dfb-b307-7f3735ac4466",
+                "name": "idfolder",
+                "value": "YOUR_SQUAD_HERA_FOLDER_ID",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          -3072,
+          2736
+        ],
+        "id": "80b74036-9e63-447e-911f-6750827f3774",
+        "name": "Edit Fields6"
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "c538fd24-ef05-4e87-9a3c-74824b8aad71",
+                "name": "idfolder",
+                "value": "YOUR_SQUAD_LUNA_FOLDER_ID",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          -3072,
+          2848
+        ],
+        "id": "520fa98a-7bef-402c-8e91-b3e70389c11a",
+        "name": "Edit Fields7"
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "d28b2e0a-2860-41ea-a65f-a3aafaedfb46",
+                "name": "idfolder",
+                "value": "YOUR_SQUAD_PI_FOLDER_ID",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          -3072,
+          2960
+        ],
+        "id": "589a488f-630e-4a00-8d77-a830216a88f7",
+        "name": "Edit Fields8"
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "2f39905f-874d-4215-9a9a-b1f0ce756efd",
+                "name": "idfolder",
+                "value": "YOUR_DEFAULT_FOLDER_ID",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          -3072,
+          3088
+        ],
+        "id": "f00ff174-d2e8-4f60-9480-d4a6588a5058",
+        "name": "Edit Fields9"
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "5cf1a855-0446-4f66-bc9a-62392c471d84",
+                "name": "id_folder",
+                "value": "={{ $json.idfolder }}",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          -2464,
+          2656
+        ],
+        "id": "35c7305f-530d-4221-88ef-f816e7c8e97d",
+        "name": "Pasta Google Drive"
+      },
+      {
+        "parameters": {
+          "folderId": "YOUR_DEFAULT_FOLDER_ID",
+          "title": "=[{{ $('Edit Fields4').first().json.Marca }}] Doc temporário- \"{{ $('Edit Fields4').first().json['Palavra-chave principal'] }}\"\" \n"
+        },
+        "type": "n8n-nodes-base.googleDocs",
+        "typeVersion": 2,
+        "position": [
+          -2304,
+          2656
+        ],
+        "id": "e7c226c1-9fab-4812-a4e6-ac79c07961c2",
+        "name": "criar_briefing1",
+        "credentials": {
+          "googleDocsOAuth2Api": {
+            "id": "YOUR_GOOGLE_DOCS_CREDENTIAL_ID",
+            "name": "YOUR_GOOGLE_DOCS_CREDENTIAL_NAME"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "endpointUrl": "https://YOUR_N8N_INSTANCE.app.n8n.cloud/mcp/agente-briefing",
+          "serverTransport": "httpStreamable",
+          "include": "selected",
+          "includeTools": [
+            "palavras_chave_relacionadas_semrush",
+            "encontrar_concorrentes_semrush",
+            "buscar_dados_palavra_chave_semrush"
+          ],
+          "options": {
+            "timeout": 100000
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+        "typeVersion": 1.1,
+        "position": [
+          4224,
+          2960
+        ],
+        "id": "cd9abc7f-0f85-48c6-8b9c-9a01b720f43f",
+        "name": "MCP Client5"
+      },
+      {
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "value": "YOUR_WRITING_WORKFLOW_ID",
+            "mode": "list",
+            "cachedResultUrl": "/workflow/YOUR_WRITING_WORKFLOW_ID",
+            "cachedResultName": "Agentes — Agente Redator [Relevance]"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "idbriefing": "={{ $('update_brief_final1').first().json.documentId }}",
+              "Marca": "={{ $('Edit Fields4').first().json.Marca }}",
+              "abreviacao_projeto": "={{ $('Edit Fields4').first().json.Marca }}",
+              "tom_de_voz": "={{ $('Edit Fields4').first().json['Tom de Voz'] }}",
+              "task_id": "={{ $('Webhook').first().json.body.num_task_id }}",
+              "guide_conteudo": "={{ $('Webhook').first().json.body['Tom de voz'] }}",
+              "Tópico": "={{ $('Webhook').first().json.body['Tópico'] }}",
+              "id_folder": "={{ $('Pasta Google Drive').first().json.id_folder }}"
+            },
+            "matchingColumns": [],
+            "schema": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": true
+          },
+          "options": {
+            "waitForSubWorkflow": false
+          }
+        },
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.3,
+        "position": [
+          10080,
+          2464
+        ],
+        "id": "505e8991-04b7-4538-9a20-cde4ae9c813c",
+        "name": "Call 'Agente Redator [Relevance]'"
+      },
+      {
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "value": "claude-haiku-4-5-20251001",
+            "mode": "list",
+            "cachedResultName": "Claude Haiku 4.5"
+          },
+          "options": {}
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+        "typeVersion": 1.3,
+        "position": [
+          4560,
+          2928
+        ],
+        "id": "528823bb-5ac2-47c5-85e6-42032aa78336",
+        "name": "Anthropic Chat Model22",
+        "credentials": {
+          "anthropicApi": {
+            "id": "YOUR_ANTHROPIC_CREDENTIAL_ID",
+            "name": "YOUR_ANTHROPIC_CREDENTIAL_NAME"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "value": "claude-haiku-4-5-20251001",
+            "mode": "list",
+            "cachedResultName": "Claude Haiku 4.5"
+          },
+          "options": {}
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+        "typeVersion": 1.3,
+        "position": [
+          1312,
+          2816
+        ],
+        "id": "41743fbe-4ee5-47c2-9650-c41db53ace25",
+        "name": "Anthropic Chat Model1",
+        "credentials": {
+          "anthropicApi": {
+            "id": "YOUR_ANTHROPIC_CREDENTIAL_ID",
+            "name": "YOUR_ANTHROPIC_CREDENTIAL_NAME"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "authentication": "webhook",
+          "content": "=",
+          "options": {},
+          "embeds": {
+            "values": [
+              {
+                "description": "=Os créditos da API do Firecrawl estão próximos do limite.\n\nCréditos restantes: {{ $('HTTP Request2').item.json.data.remaining_credits }}",
+                "color": "#FF4500",
+                "title": "Alerta: Créditos do Firecrawl baixos"
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.discord",
+        "typeVersion": 2,
+        "position": [
+          -3504,
+          3040
+        ],
+        "id": "468931e4-21c9-438e-bb60-749ad4fa623c",
+        "name": "Discord",
+        "webhookId": "YOUR_WEBHOOK_ID",
+        "credentials": {
+          "discordWebhookApi": {
+            "id": "YOUR_DISCORD_CREDENTIAL_ID",
+            "name": "YOUR_DISCORD_CREDENTIAL_NAME"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "authentication": "webhook",
+          "content": "=",
+          "options": {},
+          "embeds": {
+            "values": [
+              {
+                "description": "=Os créditos da API Google Serper estão próximos do limite.\n\nCréditos restantes: {{ $('SERP Brasil5').item.json.balance }}",
+                "color": "#FF4500",
+                "title": "Alerta: Créditos do Google Serper baixos"
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.discord",
+        "typeVersion": 2,
+        "position": [
+          -3504,
+          2896
+        ],
+        "id": "8914f04c-9e60-46e1-9cc7-cced064eb75a",
+        "name": "Discord1",
+        "webhookId": "YOUR_WEBHOOK_ID",
+        "credentials": {
+          "discordWebhookApi": {
+            "id": "YOUR_DISCORD_CREDENTIAL_ID",
+            "name": "YOUR_DISCORD_CREDENTIAL_NAME"
+          }
+        }
+      }
+    ],
+    "connections": {},
+    "pinData": {},
+    "meta": {
+      "templateCredsSetupCompleted": true,
+      "instanceId": "YOUR_N8N_INSTANCE_ID"
+    }
+  }
